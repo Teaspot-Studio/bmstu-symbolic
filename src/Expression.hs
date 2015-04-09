@@ -98,26 +98,26 @@ randTree = do
                     10 -> Log <$> (randTree' $ depth - 1) <*> (randTree' $ depth - 1)
                     11 -> Exp <$> (randTree' $ depth - 1) <*> (randTree' $ depth - 1)
 
-grnFoo::[Expr]->GenRand Expr
-grnFoo (x:xs) = do
+grnFoo::Int->[Expr]->GenRand (Expr,Int)
+grnFoo d (x:xs) = do
     let offn = fromIntegral $ offsprings x
     index <- fromList $ ((0,toRational $ 1.0/offn):) $ zip [1..] $ map (\a->toRational $(fromIntegral $ offsprings a)/offn) xs
     case index of
-        0 -> return x
-        _ -> getRandNode $ (x:xs)!!index
+        0 -> return (x, d)
+        _ -> getRandNode $ ((x:xs)!!index, d+1)
 
-getRandNode::Expr->GenRand Expr
-getRandNode expr@(Val _) = return expr
-getRandNode expr@(Var _) = return expr
-getRandNode expr@(Sum a b) = grnFoo [expr,a,b]
-getRandNode expr@(Minus a b) = grnFoo [expr,a,b]
-getRandNode expr@(Mul a b) = grnFoo [expr,a,b]
-getRandNode expr@(Div a b) = grnFoo [expr,a,b]
-getRandNode expr@(Sin a) = grnFoo [expr,a]
-getRandNode expr@(Cos a) = grnFoo [expr,a]
-getRandNode expr@(Ln a) = grnFoo [expr,a]
-getRandNode expr@(Log a b) = grnFoo [expr,a,b]
-getRandNode expr@(Exp a b) = grnFoo [expr,a,b]
+getRandNode::(Expr,Int)->GenRand (Expr,Int)
+getRandNode tup@((Val _), d) = return tup
+getRandNode tup@((Var _), d) = return tup
+getRandNode (expr@(Sum a b), d) = grnFoo d [expr,a,b]
+getRandNode (expr@(Minus a b), d) = grnFoo d [expr,a,b]
+getRandNode (expr@(Mul a b), d) = grnFoo d [expr,a,b]
+getRandNode (expr@(Div a b), d) = grnFoo d [expr,a,b]
+getRandNode (expr@(Sin a), d) = grnFoo d [expr,a]
+getRandNode (expr@(Cos a), d) = grnFoo d [expr,a]
+getRandNode (expr@(Ln a), d) = grnFoo d [expr,a]
+getRandNode (expr@(Log a b), d) = grnFoo d [expr,a,b]
+getRandNode (expr@(Exp a b), d) = grnFoo d [expr,a,b]
 
 offsprings::Expr->Int
 offsprings (Val _) = 1
@@ -144,3 +144,19 @@ nodeHeight (Cos a) = 1 + nodeHeight a
 nodeHeight (Ln a) = 1 + nodeHeight a
 nodeHeight (Log a b) = 1 + max (nodeHeight a) (nodeHeight b)
 nodeHeight (Exp a b) = 1 + max (nodeHeight a) (nodeHeight b)
+
+getNiceNodes::Expr -> Int -> (Int,Int) -> (Int,Int) -> [Expr]
+getNiceNodes expr maxDepth orig@(h1,d1) (h2,d2)= acc ++ if (d2 <= maxDepth - h1) && (h2 <= maxDepth - d1) then [expr] else []
+    where 
+        acc = case expr of
+            Val _     -> []
+            Var _     -> []
+            Sum a b   -> getNiceNodes a maxDepth orig (nodeHeight a, d2+1) ++ getNiceNodes b maxDepth orig (nodeHeight b, d2+1)
+            Minus a b -> getNiceNodes a maxDepth orig (nodeHeight a, d2+1) ++ getNiceNodes b maxDepth orig (nodeHeight b, d2+1)
+            Mul a b   -> getNiceNodes a maxDepth orig (nodeHeight a, d2+1) ++ getNiceNodes b maxDepth orig (nodeHeight b, d2+1)
+            Div a b   -> getNiceNodes a maxDepth orig (nodeHeight a, d2+1) ++ getNiceNodes b maxDepth orig (nodeHeight b, d2+1)
+            Sin a     -> getNiceNodes a maxDepth orig (nodeHeight a, d2+1)
+            Cos a     -> getNiceNodes a maxDepth orig (nodeHeight a, d2+1)
+            Ln a      -> getNiceNodes a maxDepth orig (nodeHeight a, d2+1)
+            Log a b   -> getNiceNodes a maxDepth orig (nodeHeight a, d2+1) ++ getNiceNodes b maxDepth orig (nodeHeight b, d2+1)
+            Exp a b   -> getNiceNodes a maxDepth orig (nodeHeight a, d2+1) ++ getNiceNodes b maxDepth orig (nodeHeight b, d2+1)

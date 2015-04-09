@@ -31,7 +31,7 @@ check::[Int] -> Expr -> Int -> IO [Int]
 check acc expr 0 = return acc
 check acc expr n = do
     rng <- newStdGen
-    rngExp <- evalRandT (getRandNode expr) rng
+    (rngExp,d) <- evalRandT (getRandNode (expr,0)) rng
     let i = getIndex rngExp
     let newAcc = take i acc ++ [acc!!i + 1] ++ drop (i+1) acc
     check newAcc expr (n-1)
@@ -42,8 +42,11 @@ main = do
     print val1
     print $ nodeHeight val2
     print $ offsprings val2
-    acc <- check [0,0,0,0,0,0,0,0] val1 10000
-    print $ sum $ map ((/10000.0) . fromIntegral) acc
+    rng <- newStdGen
+    (rex,d) <- evalRandT (getRandNode (val1,0)) rng
+    print $ "d= " ++ show d ++ " : " ++ show rex
+    --acc <- check [0,0,0,0,0,0,0,0] val1 10000
+    --print $ sum $ map ((/10000.0) . fromIntegral) acc
     {-
     let dat = [7,9,5.467]
     let evalDat = eval dat
