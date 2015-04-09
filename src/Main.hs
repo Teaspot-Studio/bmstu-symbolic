@@ -40,9 +40,10 @@ main = do
     let val1 = Exp (Sin (Val 1)) (Sum (Mul (Val 0) (Var 1)) (Var 2))
     let val2 = Mul (Val 1) (Val 0)
     print val1
+    print $ nodeHeight val2
     print $ offsprings val2
-    acc <- check [0,0,0,0,0,0,0,0] val1 1000
-    print acc
+    acc <- check [0,0,0,0,0,0,0,0] val1 10000
+    print $ sum $ map ((/10000.0) . fromIntegral) acc
     {-
     let dat = [7,9,5.467]
     let evalDat = eval dat

@@ -99,22 +99,25 @@ randTree = do
                     11 -> Exp <$> (randTree' $ depth - 1) <*> (randTree' $ depth - 1)
 
 grnFoo::[Expr]->GenRand Expr
-grnFoo (x:xs)  = fromList $ ((x, 1.0 / offsN):) $ map (\a -> (a, toRational $ (fromIntegral $ offsprings a) / offsN) ) xs
-    where offsN = fromIntegral $ offsprings x
+grnFoo (x:xs) = do
+    let offn = fromIntegral $ offsprings x
+    index <- fromList $ ((0,toRational $ 1.0/offn):) $ zip [1..] $ map (\a->toRational $(fromIntegral $ offsprings a)/offn) xs
+    case index of
+        0 -> return x
+        _ -> getRandNode $ (x:xs)!!index
 
 getRandNode::Expr->GenRand Expr
 getRandNode expr@(Val _) = return expr
 getRandNode expr@(Var _) = return expr
-getRandNode expr@(Sum a b) = grnFoo [expr, a, b]
-getRandNode expr@(Minus a b) = grnFoo [expr, a, b]
-getRandNode expr@(Mul a b) = grnFoo [expr, a, b]
-getRandNode expr@(Div a b) = grnFoo [expr, a, b]
-getRandNode expr@(Sin a) = grnFoo [expr, a]
-getRandNode expr@(Cos a) = grnFoo [expr, a]
-getRandNode expr@(Ln a) = grnFoo [expr, a]
-getRandNode expr@(Log a b) = grnFoo [expr, a, b]
-getRandNode expr@(Exp a b) = grnFoo [expr, a, b]
-
+getRandNode expr@(Sum a b) = grnFoo [expr,a,b]
+getRandNode expr@(Minus a b) = grnFoo [expr,a,b]
+getRandNode expr@(Mul a b) = grnFoo [expr,a,b]
+getRandNode expr@(Div a b) = grnFoo [expr,a,b]
+getRandNode expr@(Sin a) = grnFoo [expr,a]
+getRandNode expr@(Cos a) = grnFoo [expr,a]
+getRandNode expr@(Ln a) = grnFoo [expr,a]
+getRandNode expr@(Log a b) = grnFoo [expr,a,b]
+getRandNode expr@(Exp a b) = grnFoo [expr,a,b]
 
 offsprings::Expr->Int
 offsprings (Val _) = 1
@@ -128,3 +131,16 @@ offsprings (Cos a) = 1 + offsprings a
 offsprings (Ln a) = 1 + offsprings a 
 offsprings (Log a b) = 1 + offsprings a + offsprings b
 offsprings (Exp a b) = 1 + offsprings a + offsprings b
+
+nodeHeight::Expr->Int
+nodeHeight (Val _) = 0
+nodeHeight (Var _) = 0
+nodeHeight (Sum a b) = 1 + max (nodeHeight a) (nodeHeight b)
+nodeHeight (Minus a b) = 1 + max (nodeHeight a) (nodeHeight b)
+nodeHeight (Mul a b) = 1 + max (nodeHeight a) (nodeHeight b)
+nodeHeight (Div a b) = 1 + max (nodeHeight a) (nodeHeight b)
+nodeHeight (Sin a) = 1 + nodeHeight a
+nodeHeight (Cos a) = 1 + nodeHeight a
+nodeHeight (Ln a) = 1 + nodeHeight a
+nodeHeight (Log a b) = 1 + max (nodeHeight a) (nodeHeight b)
+nodeHeight (Exp a b) = 1 + max (nodeHeight a) (nodeHeight b)
